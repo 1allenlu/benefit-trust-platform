@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type { Company } from '../data/mock'
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
@@ -8,8 +9,8 @@ type CompanyCardProps = {
 
 export function CompanyCard({ company }: CompanyCardProps) {
   return (
-    <a
-      href={`#company/${company.id}`}
+    <Link
+      to={`/companies/${company.id}`}
       className="flex min-w-0 flex-1 flex-col gap-[11px] rounded-[12px] border border-line bg-surface px-[16px] py-[15px] transition-colors hover:border-line-strong"
     >
       <div className="flex items-center gap-[9px]">
@@ -29,6 +30,6 @@ export function CompanyCard({ company }: CompanyCardProps) {
         <span className="flex-1 text-light">{company.reportCount} reports</span>
         <span className="font-medium text-t-link">View</span>
       </div>
-    </a>
+    </Link>
   )
 }

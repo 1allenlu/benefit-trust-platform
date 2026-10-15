@@ -1,29 +1,64 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
+
+type TabTone = 'green' | 'teal'
+
+const activeClasses: Record<TabTone, { text: string; rule: string }> = {
+  green: { text: 'text-t-green', rule: 'bg-green' },
+  teal: { text: 'text-t-teal', rule: 'bg-teal-900' },
+}
 
 type TabItemProps = {
   label: string
   active: boolean
-  onClick: () => void
+  /** Horizontal padding, e.g. "px-[12px]". The rule spans the label only. */
+  xPadClassName: string
   /** Vertical padding of the label row, e.g. "pt-[12px] pb-[10px]". */
-  paddingClassName: string
+  yPadClassName: string
+  onClick?: () => void
+  /** Renders a router link instead of a button. */
+  to?: string
   trailing?: ReactNode
+  tone?: TabTone
+  /** Text color of inactive tabs. */
+  inactiveClassName?: string
 }
 
-/** Text tab with a green underline rule under the active label. */
-export function TabItem({ label, active, onClick, paddingClassName, trailing }: TabItemProps) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className="flex shrink-0 cursor-pointer flex-col items-center"
-    >
-      <span className={`flex items-center gap-[5px] px-[12px] ${paddingClassName}`}>
-        <span className={`text-body ${active ? 'font-medium text-t-green' : 'text-mid hover:text-ink'}`}>{label}</span>
+/** Text tab with an underline rule under the active label. */
+export function TabItem({
+  label,
+  active,
+  xPadClassName,
+  yPadClassName,
+  onClick,
+  to,
+  trailing,
+  tone = 'green',
+  inactiveClassName = 'text-mid hover:text-ink',
+}: TabItemProps) {
+  const content = (
+    <>
+      <span className={`flex items-center gap-[5px] ${yPadClassName}`}>
+        <span className={`text-body ${active ? `font-medium ${activeClasses[tone].text}` : inactiveClassName}`}>
+          {label}
+        </span>
         {trailing}
       </span>
-      <span className={`h-[2.5px] self-stretch mx-[12px] ${active ? 'bg-green' : ''}`} />
+      <span className={`h-[2.5px] self-stretch ${active ? activeClasses[tone].rule : ''}`} />
+    </>
+  )
+  const className = `flex shrink-0 cursor-pointer flex-col items-stretch ${xPadClassName}`
+
+  if (to) {
+    return (
+      <Link to={to} role="tab" aria-selected={active} className={className}>
+        {content}
+      </Link>
+    )
+  }
+  return (
+    <button type="button" role="tab" aria-selected={active} onClick={onClick} className={className}>
+      {content}
     </button>
   )
 }

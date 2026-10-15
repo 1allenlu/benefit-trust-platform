@@ -4,13 +4,12 @@ import { CompanyGrid } from '../components/CompanyGrid'
 import { ExploreFilters } from '../components/ExploreFilters'
 import { Hero } from '../components/Hero'
 import { MatchRankings } from '../components/MatchRankings'
-import { TopNav } from '../components/TopNav'
+import { PageShell } from '../components/PageShell'
 import {
   communityItems,
   companies,
   heroStats,
   industries,
-  navTabs,
   rankingMetrics,
   rankings,
   rankingsSection,
@@ -18,13 +17,11 @@ import {
 } from '../data/mock'
 
 export function ExplorePage() {
-  const [activeTab, setActiveTab] = useState('explore')
   const [industry, setIndustry] = useState(industries[0])
   const [role, setRole] = useState(roles[0])
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface">
-      <TopNav tabs={navTabs} activeTab={activeTab} onTabChange={setActiveTab} />
+    <PageShell activeTab="explore" bare>
       <Hero stats={heroStats} />
       <main className="flex w-full flex-col gap-[20px] px-[40px] pt-[24px] pb-[44px]">
         <ExploreFilters
@@ -46,6 +43,6 @@ export function ExplorePage() {
           <CommunityFeed items={communityItems} />
         </div>
       </main>
-    </div>
+    </PageShell>
   )
 }

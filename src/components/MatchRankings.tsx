@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import infoIcon from '../assets/icons/info.svg'
 import type { RankingMetric, RankingRow } from '../data/mock'
+import { BarList } from './BarList'
+import { InfoIcon } from './InfoIcon'
 import { Panel } from './Panel'
 import { SectionHeader } from './SectionHeader'
 import { TabItem } from './TabItem'
@@ -29,11 +30,7 @@ export function MatchRankings({ title, subtitle, metrics, rowsByMetric }: MatchR
 
   return (
     <Panel className="min-w-0 flex-1 gap-[14px] self-stretch">
-      <SectionHeader
-        title={title}
-        subtitle={subtitle}
-        action={<img src={infoIcon} alt="About this ranking" width={14} height={14} className="shrink-0" />}
-      />
+      <SectionHeader title={title} subtitle={subtitle} action={<InfoIcon label="About this ranking" />} />
 
       <div className="flex w-full gap-[4px]" role="tablist">
         {metrics.map((metric) => (
@@ -42,27 +39,25 @@ export function MatchRankings({ title, subtitle, metrics, rowsByMetric }: MatchR
             label={metric.label}
             active={metric.id === activeMetric}
             onClick={() => setActiveMetric(metric.id)}
-            paddingClassName="pt-[5px] pb-[7px]"
+            xPadClassName="px-[12px]"
+            yPadClassName="pt-[5px] pb-[7px]"
           />
         ))}
       </div>
 
-      <ul className="flex w-full flex-col">
-        {rows.map((row) => (
-          <li key={row.label} className="flex items-center border-b border-line py-[9px] last:border-b-0">
-            <span className="w-[170px] shrink-0 pr-[12px] text-right text-small font-medium text-mid">{row.label}</span>
-            <span className="h-[26px] w-px shrink-0 bg-line-strong" />
-            <span className="flex min-w-0 flex-1 items-center gap-[8px]">
-              <span
-                className={`h-[10px] shrink-0 rounded-full ${barColor(row)}`}
-                style={{ width: row.value * PX_PER_POINT }}
-              />
-              <span className="text-small font-medium text-ink">{row.value.toFixed(1)}%</span>
-            </span>
-          </li>
-        ))}
-        {rows.length === 0 && <li className="py-[9px] text-small text-light">No data for this benefit yet.</li>}
-      </ul>
+      {rows.length > 0 ? (
+        <BarList
+          labelWidth={170}
+          rows={rows.map((row) => ({
+            label: row.label,
+            width: row.value * PX_PER_POINT,
+            colorClassName: barColor(row),
+            valueLabel: `${row.value.toFixed(1)}%`,
+          }))}
+        />
+      ) : (
+        <p className="py-[9px] text-small text-light">No data for this benefit yet.</p>
+      )}
     </Panel>
   )
 }

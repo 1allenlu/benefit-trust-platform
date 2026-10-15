@@ -1,4 +1,4 @@
-export type ChipTone = 'default' | 'active' | 'verified' | 'flag' | 'teal'
+export type ChipTone = 'default' | 'active' | 'verified' | 'flag' | 'teal' | 'muted'
 
 const toneClasses: Record<ChipTone, string> = {
   default: 'bg-soft text-mid',
@@ -6,6 +6,7 @@ const toneClasses: Record<ChipTone, string> = {
   verified: 'border border-green bg-green-50 text-t-green',
   flag: 'border border-amber bg-amber-50 text-t-amber',
   teal: 'bg-teal-100 text-t-teal',
+  muted: 'border border-line-strong text-light',
 }
 
 type ChipProps = {

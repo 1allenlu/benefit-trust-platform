@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type { CommunityItem } from '../data/mock'
 import { Button } from './Button'
 import { Chip } from './Chip'
@@ -16,14 +17,16 @@ export function CommunityFeed({ items }: CommunityFeedProps) {
         {items.map((item) => (
           <li key={item.id} className="flex flex-col items-start gap-[6px] border-b border-line py-[12px]">
             <Chip label={item.tag} tone={item.tone} />
-            <a href={`#community/${item.id}`} className="text-body font-medium text-ink hover:underline">
+            <Link to="/community" className="text-body font-medium text-ink hover:underline">
               {item.title}
-            </a>
+            </Link>
             <p className="text-small text-light">{item.meta}</p>
           </li>
         ))}
       </ul>
-      <Button className="w-full">Open community</Button>
+      <Button to="/community" className="w-full">
+        Open community
+      </Button>
     </Panel>
   )
 }

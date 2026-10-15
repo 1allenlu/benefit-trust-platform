@@ -6,6 +6,7 @@
   /* Colors (Figma variables) */
   --color-surface: #ffffff;
   --color-soft: #f5f7f8;
+  --color-softer: #fafbfb;
   --color-shade: #edf1f2;
   --color-line: #e3e7e9;
   --color-line-strong: #c9d1d5;
@@ -26,22 +27,37 @@
   --color-amber: #c77a12;
   --color-amber-50: #fbf2e3;
   --color-t-amber: #99600d;
+  --color-olive: #6e9a28;
   --color-olive-300: #b6d184;
+  --color-olive-100: #e4efd2;
+  --color-t-red: #b4443a;
 
   /* Type styles (Figma text styles L/*) */
   --text-display: 32px;
   --text-display--line-height: 40px;
   --text-display--letter-spacing: -0.6px;
+  --text-h1: 25px;
+  --text-h1--line-height: 32px;
+  --text-h1--letter-spacing: -0.4px;
   --text-h2: 18px;
   --text-h2--line-height: 25px;
   --text-h2--letter-spacing: -0.2px;
   --text-num: 21px;
   --text-num--line-height: 27px;
   --text-num--letter-spacing: -0.3px;
+  --text-num-xl: 28px;
+  --text-num-xl--line-height: 34px;
+  --text-num-xl--letter-spacing: -0.6px;
+  --text-num-m: 16px;
+  --text-num-m--line-height: 22px;
+  --text-num-m--letter-spacing: -0.1px;
   --text-body: 13.5px;
   --text-body--line-height: 20px;
   --text-small: 11.5px;
   --text-small--line-height: 17px;
+  --text-cap: 10.5px;
+  --text-cap--line-height: 14px;
+  --text-cap--letter-spacing: 0.6px;
 }
 
 @layer base {
