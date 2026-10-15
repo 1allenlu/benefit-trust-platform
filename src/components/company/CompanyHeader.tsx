@@ -1,15 +1,31 @@
 import { useState } from 'react'
 import checkIcon from '../../assets/icons/check-verified.svg'
+import { contentApi } from '../../api'
 import { Button } from '../Button'
+import { useToast } from '../Toast'
 
 type CompanyHeaderProps = {
+  companyId: string
   name: string
   verified: boolean
   meta: string[]
+  initiallyFollowing: boolean
+  /** Where "Compare with my offer" goes. */
+  compareTo: string
 }
 
-export function CompanyHeader({ name, verified, meta }: CompanyHeaderProps) {
-  const [following, setFollowing] = useState(false)
+export function CompanyHeader({ companyId, name, verified, meta, initiallyFollowing, compareTo }: CompanyHeaderProps) {
+  const toast = useToast()
+  const [following, setFollowing] = useState(initiallyFollowing)
+
+  const toggleFollow = () => {
+    const next = !following
+    setFollowing(next) // optimistic
+    contentApi.setFollowing(companyId, next).then(
+      () => toast(next ? `Following ${name} — you'll hear about changes` : `Unfollowed ${name}`, 'info'),
+      () => setFollowing(!next),
+    )
+  }
 
   return (
     <div className="flex w-full items-center gap-[16px]">
@@ -33,11 +49,11 @@ export function CompanyHeader({ name, verified, meta }: CompanyHeaderProps) {
           ))}
         </p>
       </div>
-      <Button>Suggest an edit</Button>
-      <Button onClick={() => setFollowing((f) => !f)} aria-pressed={following}>
+      <Button to={`/contribute?company=${companyId}`}>Suggest an edit</Button>
+      <Button onClick={toggleFollow} aria-pressed={following}>
         {following ? 'Following' : 'Follow'}
       </Button>
-      <Button kind="primary" to="/compare">
+      <Button kind="primary" to={compareTo}>
         Compare with my offer
       </Button>
     </div>

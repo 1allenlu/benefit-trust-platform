@@ -1,22 +1,35 @@
 import { Link } from 'react-router'
 import arrowRightIcon from '../assets/icons/arrow-right.svg'
-import bellIcon from '../assets/icons/bell.svg'
-import chevronDownActiveIcon from '../assets/icons/chevron-down-active.svg'
-import chevronDownIcon from '../assets/icons/chevron-down.svg'
 import plusCircleIcon from '../assets/icons/plus-circle.svg'
-import searchIcon from '../assets/icons/search-sm.svg'
-import type { NavTab, User } from '../data/mock'
+import { contentApi } from '../api'
+import { useAuth } from '../auth/AuthContext'
+import { useApi } from '../hooks/useApi'
+import type { NavTab } from '../data/mock'
+import { AccountMenu } from './AccountMenu'
 import { Button } from './Button'
+import { NavMenu } from './NavMenu'
+import { NavSearch } from './NavSearch'
+import { Notifications } from './Notifications'
 import { TabItem } from './TabItem'
 
 type TopNavProps = {
   tabs: NavTab[]
   activeTab: string
-  /** Signed-in user; when absent the public Log in / Sign up actions show. */
-  user?: User
 }
 
-export function TopNav({ tabs, activeTab, user }: TopNavProps) {
+export function TopNav({ tabs, activeTab }: TopNavProps) {
+  const { user, ready } = useAuth()
+  const companyIndex = useApi(() => contentApi.listCompanies(), [])
+  const menus: Record<string, { label: string; detail?: string; to: string }[]> = {
+    explore: [
+      { label: 'Benefits by company', to: '/' },
+      { label: 'Rank by 401(k) match', to: '/?q=401(k)' },
+      { label: 'Rank by parental leave', to: '/?q=parental leave' },
+      { label: 'Rank by health coverage', to: '/?q=health' },
+    ],
+    companies: (companyIndex.data ?? []).map((c) => ({ label: c.name, detail: c.detail, to: `/companies/${c.id}` })),
+  }
+
   return (
     <header className="flex w-full flex-col bg-surface">
       <div className="flex h-[60px] items-center gap-[20px] px-[40px]">
@@ -25,17 +38,7 @@ export function TopNav({ tabs, activeTab, user }: TopNavProps) {
           <span className="text-h2 font-semibold text-ink">Vested</span>
         </Link>
 
-        <label className="flex min-w-0 flex-1 items-center gap-[9px] rounded-[8px] border border-line bg-soft py-[9px] pr-[12px] pl-[14px]">
-          <img src={searchIcon} alt="" width={15} height={15} className="shrink-0" />
-          <input
-            type="search"
-            placeholder="Search a company, benefit, or city"
-            className="min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-light"
-          />
-          <kbd className="shrink-0 rounded-[4px] border border-line bg-surface px-[6px] py-[2px] font-sans text-small font-medium text-light">
-            ⌘K
-          </kbd>
-        </label>
+        <NavSearch />
 
         <Link
           to="/employer"
@@ -47,29 +50,29 @@ export function TopNav({ tabs, activeTab, user }: TopNavProps) {
 
         {user ? (
           <>
-            <button type="button" aria-label="Notifications" className="shrink-0 cursor-pointer rounded-full bg-soft p-[8px]">
-              <img src={bellIcon} alt="" width={16} height={16} />
-            </button>
-            <button type="button" className="flex shrink-0 cursor-pointer items-center gap-[8px]">
-              <span className="size-[30px] rounded-full border border-line bg-green-50" />
-              <span className="text-body font-medium text-ink">{user.shortName}</span>
-              <img src={chevronDownIcon} alt="" width={12} height={12} />
-            </button>
+            <Notifications />
+            <AccountMenu user={user} />
           </>
         ) : (
-          <>
-            <a href="#login" className="shrink-0 text-body font-medium text-mid hover:text-ink">
+          // Hidden until the session check finishes, so signed-in users don't see a flash of "Log in".
+          <div className={`flex shrink-0 items-center gap-[20px] ${ready ? '' : 'invisible'}`}>
+            <Link to="/login" className="text-body font-medium text-mid hover:text-ink">
               Log in
-            </a>
-            <Button kind="primary">Sign up</Button>
-          </>
+            </Link>
+            <Button kind="primary" to="/signup">
+              Sign up
+            </Button>
+          </div>
         )}
       </div>
 
       <nav className="flex h-[44px] items-center gap-[4px] border-b border-line px-[40px]" role="tablist">
         {tabs.map((tab) => {
           const active = tab.id === activeTab
-          return (
+          const items = menus[tab.id]
+          return tab.hasMenu && items ? (
+            <NavMenu key={tab.id} label={tab.label} active={active} to={tab.to} items={items} />
+          ) : (
             <TabItem
               key={tab.id}
               label={tab.label}
@@ -77,17 +80,12 @@ export function TopNav({ tabs, activeTab, user }: TopNavProps) {
               to={tab.to}
               xPadClassName="px-[12px]"
               yPadClassName="pt-[12px] pb-[10px]"
-              trailing={
-                tab.hasMenu && (
-                  <img src={active ? chevronDownActiveIcon : chevronDownIcon} alt="" width={12} height={12} />
-                )
-              }
             />
           )
         })}
         <div className="flex-1" />
         <Link
-          to="/community"
+          to="/contribute"
           className="flex shrink-0 items-center gap-[6px] rounded-full bg-green-50 py-[7px] pr-[13px] pl-[11px] text-small font-medium text-t-green"
         >
           <img src={plusCircleIcon} alt="" width={13} height={13} />

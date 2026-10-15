@@ -1,15 +1,25 @@
 import { useMemo, useState } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
 import checkIcon from '../assets/icons/check.svg'
 import crossIcon from '../assets/icons/cross.svg'
+import { contentApi } from '../api'
+import { useAuth } from '../auth/AuthContext'
 import { Button } from '../components/Button'
 import { InfoIcon } from '../components/InfoIcon'
+import { Loaded } from '../components/Loaded'
+import { Modal } from '../components/Modal'
 import { PageHeader } from '../components/PageHeader'
 import { PageShell } from '../components/PageShell'
 import { Panel } from '../components/Panel'
 import { SectionHeader } from '../components/SectionHeader'
 import { TabItem } from '../components/TabItem'
+import { useToast } from '../components/Toast'
+import { AskQuestionModal } from '../components/community/AskQuestionModal'
 import { PostCard } from '../components/community/PostCard'
-import { communityPage as data, type CommunityPost } from '../data/mock'
+import type { CommunityPost } from '../data/mock'
+import { useApi } from '../hooks/useApi'
+
+type CommunityData = Awaited<ReturnType<typeof contentApi.getCommunity>>
 
 const filterMatchers: Record<string, (post: CommunityPost) => boolean> = {
   Everything: () => true,
@@ -20,25 +30,62 @@ const filterMatchers: Record<string, (post: CommunityPost) => boolean> = {
 }
 
 export function CommunityPage() {
-  const [filter, setFilter] = useState(data.filters[0].label)
-  const [sort, setSort] = useState(data.sorts[0])
-
-  const posts = useMemo(() => {
-    let list = data.posts.filter(filterMatchers[filter] ?? (() => true))
-    if (sort === 'Unanswered') list = list.filter((post) => !post.employerAnswer)
-    if (sort === 'Most helpful') list = [...list].sort((a, b) => b.helpful - a.helpful)
-    return list
-  }, [filter, sort])
-
+  const state = useApi(() => contentApi.getCommunity(), [])
   return (
     <PageShell activeTab="community">
+      <Loaded state={state}>{(data) => <CommunityContent data={data} />}</Loaded>
+    </PageShell>
+  )
+}
+
+function CommunityContent({ data }: { data: CommunityData }) {
+  const toast = useToast()
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [params, setParams] = useSearchParams()
+  const [posts, setPosts] = useState(data.posts)
+  const [following, setFollowing] = useState(data.following)
+  const [filter, setFilter] = useState(data.filters[0].label)
+  const [sort, setSort] = useState(data.sorts[0])
+  const [managing, setManaging] = useState(false)
+
+  // ?ask=<companyId>&topic=… opens the composer, e.g. from a profile or the 401(k) explorer.
+  const askFor = params.get('ask')
+  const closeAsk = () => setParams({}, { replace: true })
+  const openAsk = (companyId = '') => {
+    if (!user) {
+      const next = encodeURIComponent(`/community?ask=${companyId}`)
+      navigate(`/login?next=${next}`)
+      return
+    }
+    setParams({ ask: companyId }, { replace: true })
+  }
+
+  const visible = useMemo(() => {
+    let list = posts.filter(filterMatchers[filter] ?? (() => true))
+    if (sort === 'Unanswered') list = list.filter((post) => !post.employerAnswer && !post.replies?.length)
+    if (sort === 'Most helpful') list = [...list].sort((a, b) => b.helpful - a.helpful)
+    return list
+  }, [posts, filter, sort])
+
+  const unfollow = async (id: string, name: string) => {
+    await contentApi.setFollowing(id, false)
+    setFollowing((list) => list.filter((c) => c.id !== id))
+    toast(`Unfollowed ${name}`, 'info')
+  }
+
+  return (
+    <>
       <PageHeader
         title="Community"
         subtitle="Questions, corrections and lived experience. Official policy and employee experience are always labelled separately."
         actions={
           <>
-            <Button>Ask a question</Button>
-            <Button kind="primary">Add your benefits</Button>
+            <Button onClick={() => openAsk()}>Ask a question</Button>
+            <Button kind="primary" to="/contribute">
+              Add your benefits
+            </Button>
           </>
         }
       />
@@ -55,13 +102,9 @@ export function CommunityPage() {
                   type="button"
                   aria-pressed={active}
                   onClick={() => setFilter(item.label)}
-                  className={`flex cursor-pointer items-center gap-[8px] rounded-[8px] px-[10px] py-[8px] text-left ${
-                    active ? 'bg-green-50' : 'hover:bg-soft'
-                  }`}
+                  className={`flex cursor-pointer items-center gap-[8px] rounded-[8px] px-[10px] py-[8px] text-left ${active ? 'bg-green-50' : 'hover:bg-soft'}`}
                 >
-                  <span className={`text-body whitespace-nowrap ${active ? 'font-medium text-t-green' : 'text-mid'}`}>
-                    {item.label}
-                  </span>
+                  <span className={`text-body whitespace-nowrap ${active ? 'font-medium text-t-green' : 'text-mid'}`}>{item.label}</span>
                   <div className="flex-1" />
                   <span className="text-small text-light">{item.count}</span>
                 </button>
@@ -71,15 +114,21 @@ export function CommunityPage() {
 
           <Panel className="gap-[8px]">
             <p className="text-cap font-semibold text-light uppercase">Companies you follow</p>
-            {data.following.map((company) => (
-              <div key={company.name} className="flex items-center gap-[9px] py-[6px]">
+            {following.map((company) => (
+              <button
+                key={company.id}
+                type="button"
+                onClick={() => navigate(`/companies/${company.id}?tab=community`)}
+                className="flex cursor-pointer items-center gap-[9px] rounded-[6px] py-[6px] text-left hover:bg-softer"
+              >
                 <span className="size-[22px] shrink-0 rounded-[6px] bg-shade" />
                 <span className="text-body whitespace-nowrap text-ink">{company.name}</span>
                 <div className="flex-1" />
                 <span className="text-small text-light">{company.count}</span>
-              </div>
+              </button>
             ))}
-            <Button kind="ghost" className="w-full">
+            {following.length === 0 && <p className="text-small text-light">Follow companies from their profile pages.</p>}
+            <Button kind="ghost" className="w-full" onClick={() => setManaging(true)}>
               Manage
             </Button>
           </Panel>
@@ -88,20 +137,13 @@ export function CommunityPage() {
         <div className="flex min-w-0 flex-1 flex-col gap-[14px]">
           <div className="flex w-full items-start gap-[4px] border-b border-line" role="tablist">
             {data.sorts.map((item) => (
-              <TabItem
-                key={item}
-                label={item}
-                active={item === sort}
-                onClick={() => setSort(item)}
-                xPadClassName="px-[12px]"
-                yPadClassName="pb-[8px]"
-              />
+              <TabItem key={item} label={item} active={item === sort} onClick={() => setSort(item)} xPadClassName="px-[12px]" yPadClassName="pb-[8px]" />
             ))}
           </div>
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
+          {visible.map((post) => (
+            <PostCard key={post.id} post={post} initiallyHelpful={data.helpfulPostIds.includes(post.id)} />
           ))}
-          {posts.length === 0 && <p className="text-body text-light">Nothing here yet.</p>}
+          {visible.length === 0 && <p className="text-body text-light">Nothing here yet.</p>}
         </div>
 
         <aside className="flex w-[330px] shrink-0 flex-col gap-[16px]">
@@ -110,9 +152,7 @@ export function CommunityPage() {
             <ol className="flex flex-col gap-[12px]">
               {data.contributeSteps.map((step, i) => (
                 <li key={step.title} className="flex items-start gap-[11px]">
-                  <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-green text-small font-medium text-on-dark">
-                    {i + 1}
-                  </span>
+                  <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-green text-small font-medium text-on-dark">{i + 1}</span>
                   <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
                     <p className="text-body font-medium text-ink">{step.title}</p>
                     <p className="text-small text-mid">{step.body}</p>
@@ -120,7 +160,7 @@ export function CommunityPage() {
                 </li>
               ))}
             </ol>
-            <Button kind="primary" className="w-full">
+            <Button kind="primary" className="w-full" to="/contribute">
               Start — 3 minutes
             </Button>
           </section>
@@ -140,17 +180,11 @@ export function CommunityPage() {
           </Panel>
 
           <section className="flex flex-col gap-[10px] rounded-[12px] border border-line bg-softer px-[20px] pt-[18px] pb-[20px]">
-            <SectionHeader title="What employers can and cannot do" action={<InfoIcon />} />
+            <SectionHeader title="What employers can and cannot do" action={<InfoIcon label="Payment buys publishing tools, never placement or score." />} />
             <ul className="flex flex-col gap-[10px]">
               {data.employerRules.map((rule) => (
                 <li key={rule.text} className="flex items-start gap-[9px] pt-[5px]">
-                  <img
-                    src={rule.allowed ? checkIcon : crossIcon}
-                    alt={rule.allowed ? 'Can' : 'Cannot'}
-                    width={14}
-                    height={14}
-                    className="shrink-0"
-                  />
+                  <img src={rule.allowed ? checkIcon : crossIcon} alt={rule.allowed ? 'Can' : 'Cannot'} width={14} height={14} className="shrink-0" />
                   <p className="min-w-0 flex-1 text-small text-mid">{rule.text}</p>
                 </li>
               ))}
@@ -158,6 +192,41 @@ export function CommunityPage() {
           </section>
         </aside>
       </div>
-    </PageShell>
+
+      {askFor !== null && user && (
+        <AskQuestionModal
+          key={location.search}
+          companies={data.companies}
+          initialCompanyId={askFor || undefined}
+          initialTitle={params.get('topic') ?? ''}
+          onClose={closeAsk}
+          onPosted={(post) => {
+            setPosts((list) => [post, ...list])
+            setFilter('Everything')
+            setSort('Newest')
+            closeAsk()
+            toast(`Posted to ${post.company} — it's at the top of the feed`)
+          }}
+        />
+      )}
+
+      {managing && (
+        <Modal title="Companies you follow" subtitle="You'll hear when their profile or answers change" onClose={() => setManaging(false)} width={420}>
+          {following.length ? (
+            <ul className="flex flex-col">
+              {following.map((company) => (
+                <li key={company.id} className="flex items-center gap-[10px] border-b border-line py-[10px] last:border-b-0">
+                  <span className="size-[22px] shrink-0 rounded-[6px] bg-shade" />
+                  <span className="flex-1 text-body text-ink">{company.name}</span>
+                  <Button onClick={() => unfollow(company.id, company.name)}>Unfollow</Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-body text-mid">You're not following anyone yet. Use Follow on any company profile.</p>
+          )}
+        </Modal>
+      )}
+    </>
   )
 }

@@ -1,16 +1,15 @@
-import { useState } from 'react'
 import { Link } from 'react-router'
 import { TabItem } from './TabItem'
 
 type EmployerTopNavProps = {
   tabs: string[]
+  activeTab: string
+  onTabChange: (tab: string) => void
   orgLabel: string
 }
 
 /** Employer-side navigation. Teal identity keeps it distinct from the employee green. */
-export function EmployerTopNav({ tabs, orgLabel }: EmployerTopNavProps) {
-  const [activeTab, setActiveTab] = useState(tabs[0])
-
+export function EmployerTopNav({ tabs, activeTab, onTabChange, orgLabel }: EmployerTopNavProps) {
   return (
     <header className="flex w-full flex-col bg-surface">
       <div className="flex h-[60px] items-center gap-[20px] px-[40px]">
@@ -22,6 +21,9 @@ export function EmployerTopNav({ tabs, orgLabel }: EmployerTopNavProps) {
           </span>
         </Link>
         <div className="flex-1" />
+        <Link to="/" className="text-small font-medium text-t-link hover:underline">
+          View as an employee ↗
+        </Link>
         <span className="text-body text-mid">{orgLabel}</span>
         <span className="size-[30px] rounded-full bg-teal-100" />
       </div>
@@ -31,7 +33,7 @@ export function EmployerTopNav({ tabs, orgLabel }: EmployerTopNavProps) {
             key={tab}
             label={tab}
             active={tab === activeTab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => onTabChange(tab)}
             tone="teal"
             xPadClassName="px-[12px]"
             yPadClassName="pt-[12px] pb-[10px]"

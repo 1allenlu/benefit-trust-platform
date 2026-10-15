@@ -1,4 +1,4 @@
-import type { CompareEmployer } from '../../data/mock'
+import type { CompareColumn } from './types'
 import { Chip } from '../Chip'
 import { Panel } from '../Panel'
 import { SectionHeader } from '../SectionHeader'
@@ -7,7 +7,7 @@ const segmentColors = ['bg-teal-900', 'bg-teal-700', 'bg-teal-500', 'bg-teal-300
 
 type ValueStackProps = {
   legend: string[]
-  employers: CompareEmployer[]
+  employers: CompareColumn[]
 }
 
 export function ValueStack({ legend, employers }: ValueStackProps) {
@@ -28,7 +28,7 @@ export function ValueStack({ legend, employers }: ValueStackProps) {
         }
       />
       {employers.map((employer) => (
-        <div key={employer.name} className="flex flex-col gap-[8px]">
+        <div key={employer.id} className="flex flex-col gap-[8px]">
           <div className="flex items-center gap-[9px]">
             <span className="size-[22px] shrink-0 rounded-[6px] bg-shade" />
             <span className="text-body font-medium text-ink">{employer.name}</span>

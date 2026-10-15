@@ -1,5 +1,5 @@
-// Hardcoded mock data for the Explore page.
-// Replace these exports with API calls when a backend is available.
+// Hardcoded mock data. Pages never import this directly: they go through src/api,
+// which serves it until VITE_API_URL points at a real backend.
 
 export type NavTab = {
   id: string
@@ -9,8 +9,11 @@ export type NavTab = {
 }
 
 export type User = {
+  id: string
   firstName: string
+  /** e.g. "Maya R." */
   shortName: string
+  email: string
 }
 
 export type HeroStat = {
@@ -27,16 +30,69 @@ export type Company = {
   /** e.g. "20d PTO" or "Unlimited" */
   timeOff: string
   reportCount: number
+  city: string
+  industries: string[]
+  /** Roles with benefits reports at this company. */
+  roles: string[]
+  /** Set by benefit searches, e.g. "16 weeks paid leave". Replaces the card's meta line. */
+  highlight?: string
+}
+
+export type CompanySort = 'value-desc' | 'value-asc' | 'match-desc' | 'reports-desc'
+
+/** A documented amount, or why there isn't one. Unknown is never scored as zero. */
+export type FactValue = number | 'unknown' | 'none'
+
+export type MatchTier = {
+  /** Applies to your contribution up to this % of pay. */
+  upTo: number
+  /** Employer dollars per dollar you put in. */
+  rate: number
+}
+
+/** The standardised facts every company is described with. */
+export type CompanyFacts = {
+  healthCoveredPct: number
+  /** Employer share of the health premium, USD / yr. */
+  healthValue: number
+  matchTiers: MatchTier[]
+  vesting: string
+  vestingYears: number
+  /** Commuter + wellness, USD / yr. */
+  everydayValue: number
+  hsaSeed: FactValue
+  learningBudget: FactValue
+  studentLoan: FactValue
+  ptoDays: number | 'unlimited'
+  parentalWeeks: number
+}
+
+export type FactKey = 'match' | 'vesting' | 'health' | 'pto' | 'parental' | 'learning' | 'loan' | 'hsa'
+
+export type CompanyRecord = Omit<Company, 'annualValue' | 'matchPercent' | 'timeOff'> & {
+  employees: string
+  verified: boolean
+  lastVerified: string
+  facts: CompanyFacts
+  /** Caveats shown next to a fact, e.g. "No documented minimum". */
+  flags?: Partial<Record<FactKey, string>>
+  /** Share of published fields by source, in percent. */
+  sources: { documents: number; reports: number; undocumented: number }
+  /** Fit against the signed-in user's saved priorities. */
+  fit: { score: number; note: string }
 }
 
 export type RankingMetric = {
-  id: string
+  id: '401k' | 'health' | 'time-off' | 'parental'
   label: string
+  title: string
+  subtitle: string
+  /** Formats a value for the bar label, e.g. "6.0%". */
+  unit: 'percent' | 'days' | 'weeks'
 }
 
 export type RankingRow = {
   label: string
-  /** Value in percent. */
   value: number
   isBenchmark?: boolean
 }
@@ -59,7 +115,6 @@ export const navTabs: NavTab[] = [
   { id: 'my-benefits', label: 'My benefits', to: '/my-benefits' },
 ]
 
-export const currentUser: User = { firstName: 'Maya', shortName: 'Maya R.' }
 
 export const heroStats: HeroStat[] = [
   { value: '12,408', label: 'benefit reports' },
@@ -78,6 +133,8 @@ export const industries: string[] = [
   'Public sector',
 ]
 
+export const moreIndustries: string[] = ['Education', 'Energy', 'Media', 'Nonprofit']
+
 export const roles: string[] = [
   'Product Manager',
   'Software Engineer',
@@ -87,38 +144,151 @@ export const roles: string[] = [
   'Marketing',
 ]
 
-export const companies: Company[] = [
-  { id: 'northstar', name: 'Northstar Labs', annualValue: 20400, matchPercent: 4, timeOff: '20d PTO', reportCount: 46 },
-  { id: 'harbor', name: 'Harbor Systems', annualValue: 16250, matchPercent: 3, timeOff: 'Unlimited', reportCount: 31 },
-  { id: 'meridian', name: 'Meridian Health', annualValue: 23900, matchPercent: 6, timeOff: '25d PTO', reportCount: 88 },
-  { id: 'cobalt', name: 'Cobalt Finance', annualValue: 18700, matchPercent: 5, timeOff: '18d PTO', reportCount: 124 },
-  { id: 'polaris', name: 'Polaris Retail', annualValue: 9400, matchPercent: 2, timeOff: '15d PTO', reportCount: 57 },
+export const moreRoles: string[] = ['Sales', 'Operations', 'People / HR', 'Customer Success']
+
+const tiers = (...pairs: [number, number][]): MatchTier[] => pairs.map(([upTo, rate]) => ({ upTo, rate }))
+
+export const companyRecords: CompanyRecord[] = [
+  {
+    id: 'northstar', name: 'Northstar Labs', reportCount: 46, city: 'New York, NY', industries: ['Tech'],
+    roles: ['Product Manager', 'Software Engineer', 'Data Scientist', 'Designer'],
+    employees: '1,200', verified: true, lastVerified: '3 Feb 2026',
+    facts: {
+      healthCoveredPct: 80, healthValue: 9600, matchTiers: tiers([3, 1], [5, 0.5]), vesting: '3-year graded', vestingYears: 3,
+      everydayValue: 2600, hsaSeed: 'unknown', learningBudget: 2000, studentLoan: 1200, ptoDays: 20, parentalWeeks: 12,
+    },
+    flags: { hsa: 'Requested 2 Feb' },
+    sources: { documents: 78, reports: 16, undocumented: 6 },
+    fit: { score: 81, note: 'Only one with student loan help' },
+  },
+  {
+    id: 'harbor', name: 'Harbor Systems', reportCount: 31, city: 'San Francisco, CA', industries: ['Tech'],
+    roles: ['Product Manager', 'Software Engineer', 'Marketing'],
+    employees: '640', verified: false, lastVerified: '19 Dec 2025',
+    facts: {
+      healthCoveredPct: 70, healthValue: 7200, matchTiers: tiers([3, 1]), vesting: 'Immediate', vestingYears: 0,
+      everydayValue: 1350, hsaSeed: 750, learningBudget: 3200, studentLoan: 'none', ptoDays: 'unlimited', parentalWeeks: 8,
+    },
+    flags: { pto: 'No documented minimum' },
+    sources: { documents: 61, reports: 29, undocumented: 10 },
+    fit: { score: 52, note: 'Unlimited PTO has no documented floor' },
+  },
+  {
+    id: 'meridian', name: 'Meridian Health', reportCount: 88, city: 'Boston, MA', industries: ['Tech', 'Healthcare'],
+    roles: ['Product Manager', 'Data Scientist', 'Analyst'],
+    employees: '8,400', verified: true, lastVerified: '28 Jan 2026',
+    facts: {
+      healthCoveredPct: 90, healthValue: 11200, matchTiers: tiers([6, 1]), vesting: '5-year graded', vestingYears: 5,
+      everydayValue: 900, hsaSeed: 1500, learningBudget: 1800, studentLoan: 1000, ptoDays: 25, parentalWeeks: 16,
+    },
+    sources: { documents: 82, reports: 14, undocumented: 4 },
+    fit: { score: 74, note: 'Best savings, smaller loan support' },
+  },
+  {
+    id: 'cobalt', name: 'Cobalt Finance', reportCount: 124, city: 'New York, NY', industries: ['Tech', 'Finance'],
+    roles: ['Product Manager', 'Software Engineer', 'Analyst'],
+    employees: '3,100', verified: true, lastVerified: '30 Jan 2026',
+    facts: {
+      healthCoveredPct: 85, healthValue: 9000, matchTiers: tiers([5, 1]), vesting: '4-year graded', vestingYears: 4,
+      everydayValue: 1200, hsaSeed: 750, learningBudget: 1500, studentLoan: 'unknown', ptoDays: 18, parentalWeeks: 14,
+    },
+    flags: { loan: 'Asked 12 Jan' },
+    sources: { documents: 74, reports: 20, undocumented: 6 },
+    fit: { score: 69, note: 'Strong match, loan help not documented' },
+  },
+  {
+    id: 'polaris', name: 'Polaris Retail', reportCount: 57, city: 'Seattle, WA', industries: ['Tech', 'Retail'],
+    roles: ['Product Manager', 'Designer', 'Marketing'],
+    employees: '12,000', verified: false, lastVerified: '14 Nov 2025',
+    facts: {
+      healthCoveredPct: 60, healthValue: 5400, matchTiers: tiers([4, 0.5]), vesting: '6-year graded', vestingYears: 6,
+      everydayValue: 600, hsaSeed: 400, learningBudget: 500, studentLoan: 'none', ptoDays: 15, parentalWeeks: 6,
+    },
+    flags: { pto: 'Offer letter says 18 — in review' },
+    sources: { documents: 55, reports: 35, undocumented: 10 },
+    fit: { score: 38, note: 'Lowest match and shortest leave' },
+  },
+  {
+    id: 'vertex', name: 'Vertex Logistics', reportCount: 22, city: 'Chicago, IL', industries: ['Manufacturing'],
+    roles: ['Analyst', 'Software Engineer'],
+    employees: '2,300', verified: false, lastVerified: '22 Jan 2026',
+    facts: {
+      healthCoveredPct: 75, healthValue: 7800, matchTiers: tiers([3, 1], [4, 0.5]), vesting: '3-year cliff', vestingYears: 3,
+      everydayValue: 1125, hsaSeed: 500, learningBudget: 1000, studentLoan: 'none', ptoDays: 15, parentalWeeks: 8,
+    },
+    sources: { documents: 66, reports: 24, undocumented: 10 },
+    fit: { score: 55, note: 'Solid health cover, modest time off' },
+  },
+  {
+    id: 'lumen', name: 'Lumen Biotech', reportCount: 19, city: 'Boston, MA', industries: ['Biotech', 'Healthcare'],
+    roles: ['Data Scientist', 'Analyst'],
+    employees: '900', verified: true, lastVerified: '1 Feb 2026',
+    facts: {
+      healthCoveredPct: 95, healthValue: 12000, matchTiers: tiers([5, 1]), vesting: 'Immediate', vestingYears: 0,
+      everydayValue: 2000, hsaSeed: 1350, learningBudget: 3000, studentLoan: 1500, ptoDays: 22, parentalWeeks: 20,
+    },
+    sources: { documents: 88, reports: 9, undocumented: 3 },
+    fit: { score: 90, note: 'Strong on every priority you saved' },
+  },
+  {
+    id: 'summit', name: 'Summit Advisory', reportCount: 35, city: 'New York, NY', industries: ['Consulting'],
+    roles: ['Analyst', 'Product Manager', 'Marketing'],
+    employees: '1,700', verified: false, lastVerified: '9 Jan 2026',
+    facts: {
+      healthCoveredPct: 80, healthValue: 8500, matchTiers: tiers([4, 1]), vesting: '3-year graded', vestingYears: 3,
+      everydayValue: 1300, hsaSeed: 'unknown', learningBudget: 2500, studentLoan: 'unknown', ptoDays: 20, parentalWeeks: 12,
+    },
+    sources: { documents: 70, reports: 18, undocumented: 12 },
+    fit: { score: 63, note: 'Good learning budget, loan help unknown' },
+  },
 ]
 
-export const rankingsSection = {
-  title: 'Who matches the most',
-  subtitle: 'Employer 401(k) contribution as a share of base salary',
-}
+/** The signed-in user's employer (and the offer they're weighing on Compare). */
+export const yourCompanyId = 'northstar'
+
+/** Salary that published dollar figures assume. */
+export const defaultBaseSalary = 125000
+
+export const companySortOptions: { value: CompanySort; label: string }[] = [
+  { value: 'value-desc', label: 'Highest value' },
+  { value: 'value-asc', label: 'Lowest value' },
+  { value: 'match-desc', label: 'Highest 401(k) match' },
+  { value: 'reports-desc', label: 'Most reports' },
+]
+
+/** Explore opens filtered like the design: Tech + Product Manager. */
+export const defaultExploreFilters = { industry: 'Tech', role: 'Product Manager' }
+
+/** Mock accounts for the auth endpoints. Passwords are only ever compared in the mock server. */
+export const mockAccounts: { user: User; password: string }[] = [
+  {
+    user: { id: 'u-maya', firstName: 'Maya', shortName: 'Maya R.', email: 'maya@example.com' },
+    password: 'vested-demo',
+  },
+]
 
 export const rankingMetrics: RankingMetric[] = [
-  { id: '401k', label: '401(k) match' },
-  { id: 'health', label: 'Health coverage' },
-  { id: 'time-off', label: 'Time off' },
-  { id: 'parental', label: 'Parental leave' },
+  {
+    id: '401k', label: '401(k) match', unit: 'percent',
+    title: 'Who matches the most', subtitle: 'Employer 401(k) contribution as a share of base salary',
+  },
+  {
+    id: 'health', label: 'Health coverage', unit: 'percent',
+    title: 'Who covers the most', subtitle: 'Share of the health premium the employer pays',
+  },
+  {
+    id: 'time-off', label: 'Time off', unit: 'days',
+    title: 'Who gives the most time off', subtitle: 'Paid days off per year · unlimited policies with no documented minimum are left out',
+  },
+  {
+    id: 'parental', label: 'Parental leave', unit: 'weeks',
+    title: 'Who offers the most leave', subtitle: 'Fully paid parental leave, in weeks',
+  },
 ]
 
-/** Rows per metric id. Only 401(k) has data in the design. */
-export const rankings: Record<string, RankingRow[]> = {
-  '401k': [
-    { label: 'Meridian Health', value: 6.0 },
-    { label: 'Cobalt Finance', value: 5.0 },
-    { label: 'Northstar Labs', value: 4.0 },
-    { label: 'Vertex Logistics', value: 3.5 },
-    { label: 'Harbor Systems', value: 3.0 },
-    { label: 'Polaris Retail', value: 2.0 },
-    { label: 'Industry median', value: 3.2, isBenchmark: true },
-  ],
-}
+/** Companies shown in "Who matches the most", and the industry medians it compares them with. */
+export const rankingCompanyIds = ['meridian', 'cobalt', 'northstar', 'vertex', 'harbor', 'polaris']
+export const industryMedians: Record<string, number> = { '401k': 3.2, health: 75, 'time-off': 18, parental: 10 }
 
 export const communityItems: CommunityItem[] = [
   {
@@ -270,52 +440,44 @@ export type CompareCell = {
   flag?: string
 }
 
-export type CompareEmployer = {
-  name: string
-  isYours?: boolean
-  totalValue: string
-  /** Value stack segment widths in px, in legend order. */
-  stack: number[]
+export type CompareScope = {
+  location: string
+  employment: 'Full-time, salaried' | 'Part-time'
+  planYear: string
+  baseSalary: number
 }
 
-export const compareView = {
-  scope: [
-    { label: 'Location', value: 'New York, United States', options: ['New York, United States', 'San Francisco, United States', 'Remote, United States'] },
-    { label: 'Employment type', value: 'Full-time, salaried', options: ['Full-time, salaried', 'Part-time', 'Contract'] },
-    { label: 'Plan year', value: '2026', options: ['2026', '2025'] },
-    { label: 'Base salary for % figures', value: '$125,000', options: ['$100,000', '$125,000', '$150,000'] },
-  ],
+export const compareConfig = {
+  defaultCompanyIds: ['meridian', 'northstar', 'harbor'],
+  maxCompanies: 4,
+  defaultScope: {
+    location: 'New York, United States',
+    employment: 'Full-time, salaried',
+    planYear: '2026',
+    baseSalary: 125000,
+  } as CompareScope,
+  scopeOptions: {
+    location: ['New York, United States', 'Boston, United States', 'San Francisco, United States', 'Remote, United States'],
+    employment: ['Full-time, salaried', 'Part-time'] as CompareScope['employment'][],
+    planYear: ['2026'],
+    baseSalary: [90000, 110000, 125000, 150000, 180000],
+  },
   stackLegend: ['Health premium', '401(k) match', 'Everyday', 'Learning', 'Loans'],
-  employers: [
-    { name: 'Meridian Health', totalValue: '$23,900', stack: [262, 176, 56, 42, 23] },
-    { name: 'Northstar Labs', isYours: true, totalValue: '$20,400', stack: [225, 117, 61, 47, 28] },
-    { name: 'Harbor Systems', totalValue: '$16,250', stack: [169, 95, 42, 75] },
-  ] as CompareEmployer[],
-  matrix: [
-    { benefit: '401(k) match', cells: [{ text: '6% of base · $7,500', best: true }, { text: '4% of base · $5,000' }, { text: '3% of base · $4,050' }] },
-    { benefit: 'Match vesting', cells: [{ text: '5-year graded' }, { text: '3-year graded' }, { text: 'Immediate', best: true }] },
-    { benefit: 'Health premium covered', cells: [{ text: '90% · $11,200', best: true }, { text: '80% · $9,600' }, { text: '70% · $7,200' }] },
-    { benefit: 'Paid time off', cells: [{ text: '25 days accrued', best: true }, { text: '20 days accrued' }, { text: '“Unlimited”', flag: 'No documented minimum' }] },
-    { benefit: 'Parental leave', cells: [{ text: '16 weeks paid', best: true }, { text: '12 weeks paid' }, { text: '8 weeks paid' }] },
-    { benefit: 'Learning budget', cells: [{ text: '$1,800 / yr' }, { text: '$2,000 / yr' }, { text: '$3,200 / yr', best: true }] },
-    { benefit: 'Student loan help', cells: [{ text: '$1,000 / yr' }, { text: '$1,200 / yr', best: true }, { text: 'Not offered', muted: true }] },
-    { benefit: 'HSA employer seed', cells: [{ text: '$1,500 / yr', best: true }, { text: 'Not documented', muted: true, flag: 'Requested 2 Feb' }, { text: '$750 / yr' }] },
-  ] as { benefit: string; cells: CompareCell[] }[],
   priorities: 'Build savings early · Pay down student loans · Time off and flexibility',
-  fit: [
-    { name: 'Meridian Health', note: 'Best savings, no loan support', score: 74, isYours: false },
-    { name: 'Northstar Labs', note: 'Only one with student loan help', score: 81, isYours: true },
-    { name: 'Harbor Systems', note: 'Unlimited PTO has no documented floor', score: 52, isYours: false },
-  ],
-  unknowns: [
-    { field: 'HSA employer seed', detail: 'Northstar Labs · Requested 2 Feb 2026' },
-    { field: 'PTO minimum', detail: 'Harbor Systems · No floor documented' },
-    { field: 'Dental & vision detail', detail: 'Harbor Systems · 2025 document only' },
-    { field: 'Commuter benefit', detail: 'Meridian Health · Not published' },
-  ],
 }
 
 /* ---------- 04 · My benefits dashboard ---------- */
+
+export type ActionItem = {
+  id: string
+  title: string
+  detail: string
+  /** Where the action actually happens. */
+  system: string
+  systemUrl: string
+  due?: string
+  done: boolean
+}
 
 export const myBenefits = {
   intro:
@@ -329,16 +491,35 @@ export const myBenefits = {
     { label: 'Learning budget left', value: '$2,000', sub: 'resets 1 January' },
     { label: 'Actions open', value: '3', sub: '1 closes in 12 days', tone: 'flag' },
   ] as Stat[],
+  explainer: [
+    'Employer-paid value is what Northstar spends on you each year beyond salary, bonus and equity: its share of your health premium, the 401(k) match at your contribution rate, and the budgets you can draw on.',
+    'Figures come from Northstar’s 2026 plan documents. Anything we could not trace to a document is shown as unknown and left out of totals — never counted as zero.',
+    'This is education, not advice. Changes to your enrolment or contribution happen in Workday and Fidelity, not here.',
+  ],
+  actionPlan: [
+    {
+      id: 'a1', title: 'Enrol in the PPO medical plan', detail: 'Pick a plan and add dependants before the window closes.',
+      system: 'Workday', systemUrl: 'https://www.workday.com', due: '16 Feb', done: false,
+    },
+    {
+      id: 'a2', title: 'Elect dental + vision', detail: 'Included at no cost, but you still have to opt in.',
+      system: 'Workday', systemUrl: 'https://www.workday.com', due: '16 Feb', done: false,
+    },
+    {
+      id: 'a3', title: 'Set your 401(k) contribution', detail: 'You need 5% to collect the full Northstar match.',
+      system: 'Fidelity NetBenefits', systemUrl: 'https://nb.fidelity.com', done: false,
+    },
+  ] as ActionItem[],
   setup: { done: 4, total: 7, valueDone: '$11,800', valueTotal: '$20,400', /** 0–1 */ ratio: 0.578, note: 'The rest needs an action from you — mostly in Workday and Fidelity.' },
   benefits: [
-    { name: '401(k) — 4% employer match', category: 'Retirement', status: 'Action needed', tone: 'flag', value: '$5,000' },
-    { name: 'PPO medical plan', category: 'Health', status: 'Enrol by 16 Feb', tone: 'flag', value: '$9,600' },
-    { name: 'Dental + vision', category: 'Health', status: 'Enrol by 16 Feb', tone: 'flag', value: 'included' },
-    { name: 'Paid time off — 20 days', category: 'Time off', status: 'Active', tone: 'verified', value: '20 days' },
-    { name: 'Learning budget', category: 'Learning', status: 'Unused', tone: 'default', value: '$2,000' },
-    { name: 'Student loan contribution', category: 'Loans', status: 'Eligible 2 Aug 2026', tone: 'default', value: '$1,200' },
-    { name: 'Commuter + wellness', category: 'Everyday', status: 'Active', tone: 'verified', value: '$2,600' },
-  ] as { name: string; category: string; status: string; tone: ChipToneName; value: string }[],
+    { name: '401(k) — 4% employer match', category: 'Retirement', status: 'Action needed', tone: 'flag', value: '$5,000', to: '/my-benefits/401k' },
+    { name: 'PPO medical plan', category: 'Health', status: 'Enrol by 16 Feb', tone: 'flag', value: '$9,600', to: '/companies/northstar?tab=health' },
+    { name: 'Dental + vision', category: 'Health', status: 'Enrol by 16 Feb', tone: 'flag', value: 'included', to: '/companies/northstar?tab=health' },
+    { name: 'Paid time off — 20 days', category: 'Time off', status: 'Active', tone: 'verified', value: '20 days', to: '/companies/northstar?tab=time-off' },
+    { name: 'Learning budget', category: 'Learning', status: 'Unused', tone: 'default', value: '$2,000', to: '/companies/northstar' },
+    { name: 'Student loan contribution', category: 'Loans', status: 'Eligible 2 Aug 2026', tone: 'default', value: '$1,200', to: '/companies/northstar' },
+    { name: 'Commuter + wellness', category: 'Everyday', status: 'Active', tone: 'verified', value: '$2,600', to: '/companies/northstar' },
+  ] as { name: string; category: string; status: string; tone: ChipToneName; value: string; to: string }[],
   quarters: [
     { label: 'Q1', total: '$4,600', segments: [38, 73, 29] },
     { label: 'Q2', total: '$5,900', segments: [38, 73, 69] },
@@ -365,24 +546,14 @@ export const myBenefits = {
 
 export const retirementExplorer = {
   verifiedOn: 'Plan facts verified 3 Feb 2026',
-  /** Scenario contribution, % of pay. */
+  companyId: 'northstar',
+  employerShortName: 'Northstar',
+  baseSalary: 125000,
+  paychecksPerYear: 26,
+  /** Your current contribution, % of pay. */
   contributionPercent: 6,
-  stats: [
-    { label: 'You contribute', value: '$7,500', sub: '6% of $125,000, ~$288 a paycheck' },
-    { label: 'Northstar adds', value: '$5,000', sub: 'the full match — you are above 5%', tone: 'highlight' },
-    { label: 'Into your account', value: '$12,500', sub: "before any growth, which we don't predict" },
-    { label: 'Yours if you left today', value: '$7,500', sub: 'their match vests over 3 years' },
-  ] as Stat[],
-  insight: {
-    title: "Drop to 3% and Northstar's share falls to $3,750 — $1,250 a year less.",
-    sub: 'Anything above 5% is all yours. Still saved, just not matched.',
-  },
-  scenarios: [
-    { contribute: '3%', fromPay: '$3,750', employer: '$3,750', total: '$7,500', leftBehind: '$1,250' },
-    { contribute: '5%', fromPay: '$6,250', employer: '$5,000', total: '$11,250', leftBehind: 'nothing' },
-    { contribute: '6% — your scenario', fromPay: '$7,500', employer: '$5,000', total: '$12,500', leftBehind: 'nothing', current: true },
-    { contribute: '10%', fromPay: '$12,500', employer: '$5,000', total: '$17,500', leftBehind: 'nothing' },
-  ],
+  maxContributionPercent: 10,
+  vestingYears: 3,
   outOfScope: [
     {
       title: 'Your take-home pay',
@@ -395,20 +566,19 @@ export const retirementExplorer = {
     { title: 'Traditional 401(k)', body: 'Taxed later. Money comes out before income tax now; you pay tax when you withdraw.' },
     { title: 'Roth 401(k)', body: 'Taxed now. Money comes out after income tax; qualified withdrawals in retirement are not taxed.' },
   ],
-  assumptions: [
-    { label: 'Salary', value: '$125,000 — from your offer letter' },
-    { label: 'Paychecks', value: '26 a year, every two weeks' },
-    { label: 'Amounts', value: 'Gross. No tax, growth or fees applied' },
-    { label: 'Plan year', value: '2026. Annual IRS limits are not modelled' },
-    { label: 'Match rule', value: '100% of first 3%, 50% of next 2%' },
-  ],
+  rothIraDetail:
+    'A Roth IRA is an individual retirement account. You open it with any bank or broker, contribute after-tax money up to an annual IRS limit, and qualified withdrawals in retirement are tax-free. It sits alongside your 401(k): you can have both, but only the 401(k) gets an employer match.',
+  handoff: { system: 'Fidelity NetBenefits', url: 'https://nb.fidelity.com' },
   source: 'Northstar 401(k) Summary Plan Description 2026, s.4.2, p.14',
 }
 
 /* ---------- 06 · Community & contribute ---------- */
 
+export type CommunityReply = { id: string; author: string; body: string; when: string }
+
 export type CommunityPost = {
   id: string
+  companyId: string
   company: string
   kind: string
   tone: ChipToneName
@@ -417,6 +587,7 @@ export type CommunityPost = {
   body: string
   helpful: number
   employerAnswer?: { author: string; when: string; body: string }
+  replies?: CommunityReply[]
 }
 
 export const communityPage = {
@@ -427,15 +598,13 @@ export const communityPage = {
     { label: 'Corrections', count: 37 },
     { label: 'Experience reports', count: 133 },
   ],
-  following: [
-    { name: 'Northstar Labs', count: 46 },
-    { name: 'Harbor Systems', count: 31 },
-    { name: 'Meridian Health', count: 88 },
-  ],
+  /** Seed for the companies the user follows. */
+  followingIds: ['northstar', 'harbor', 'meridian'],
   sorts: ['Newest', 'Unanswered', 'Most helpful'],
   posts: [
     {
       id: 'p1',
+      companyId: 'northstar',
       company: 'Northstar Labs',
       kind: 'Question',
       tone: 'default',
@@ -451,6 +620,7 @@ export const communityPage = {
     },
     {
       id: 'p2',
+      companyId: 'harbor',
       company: 'Harbor Systems',
       kind: 'Correction',
       tone: 'flag',
@@ -461,6 +631,7 @@ export const communityPage = {
     },
     {
       id: 'p3',
+      companyId: 'meridian',
       company: 'Meridian Health',
       kind: 'Experience',
       tone: 'teal',
@@ -468,6 +639,39 @@ export const communityPage = {
       title: 'Fertility benefit took 6 weeks end to end — here is the sequence',
       body: 'Pre-authorisation first, then the clinic bills Meridian directly. The $25,000 is lifetime, not annual, which is not obvious from the summary.',
       helpful: 24,
+    },
+    {
+      id: 'p4',
+      companyId: 'northstar',
+      company: 'Northstar Labs',
+      kind: 'Question',
+      tone: 'default',
+      meta: '6 hours ago · 0 replies',
+      title: 'Is the HSA seed paid up front or per paycheck?',
+      body: 'Enrolling in the high-deductible plan and trying to work out whether I need to cover the first few months myself.',
+      helpful: 11,
+    },
+    {
+      id: 'p5',
+      companyId: 'northstar',
+      company: 'Northstar Labs',
+      kind: 'Question',
+      tone: 'default',
+      meta: 'Yesterday · 1 reply',
+      title: 'Can PTO carry over past 31 March, or is it 31 December?',
+      body: 'The handbook and my offer letter say different things. I have 6 days left and need to know before I book anything.',
+      helpful: 18,
+    },
+    {
+      id: 'p6',
+      companyId: 'cobalt',
+      company: 'Cobalt Finance',
+      kind: 'Experience',
+      tone: 'teal',
+      meta: '2 days ago · 12 found this helpful',
+      title: 'The 5% match is real, but it lands quarterly',
+      body: 'Contributions go in every paycheck; Cobalt deposits its match at the end of each quarter. Worth knowing if you leave mid-quarter.',
+      helpful: 12,
     },
   ] as CommunityPost[],
   contributeSteps: [
@@ -492,6 +696,20 @@ export const communityPage = {
 
 /* ---------- 07 · Employer dashboard ---------- */
 
+export type EmployerDecision = {
+  id: string
+  kind: string
+  tone: ChipToneName
+  title: string
+  body: string
+  action: string
+  sources: string[]
+  resolve:
+    | { type: 'choose'; prompt: string; options: string[] }
+    | { type: 'amount'; prompt: string }
+    | { type: 'upload'; prompt: string }
+}
+
 export const employerDashboard = {
   org: 'Northstar Labs · People Ops',
   tabs: ['Dashboard', 'Benefits profile', 'Understanding', 'Community responses', 'Benchmarks'],
@@ -499,7 +717,8 @@ export const employerDashboard = {
   intro:
     'Two jobs here: keep the published facts right, then see where your explanations are failing people. Everything below is aggregate.',
   asOf: 'As of 4 Feb 2026 · 118 employees active in the last 30 days',
-  completeness: { value: '94%', sub: '111 of 118 fields published with a source' },
+  /** Published-with-source vs total fields; resolving decisions moves this. */
+  fields: { published: 111, total: 118 },
   stats: [
     { label: 'Employees reached', value: '118', sub: 'of 1,200 · 30 days' },
     { label: 'Open questions', value: '23', sub: 'median reply 1.4 days' },
@@ -528,6 +747,13 @@ export const employerDashboard = {
   rankNote: 'Time off and learning are your weakest categories — and both are already in the top five things people ask about.',
   decisions: [
     {
+      id: 'd-pto',
+      resolve: {
+        type: 'choose',
+        prompt: 'Which carryover deadline is correct for plan year 2026?',
+        options: ['31 March — Handbook p.24', '31 December — Offer letter template'],
+      },
+      sources: ['Employee Handbook 2026, p.24', 'Offer letter template v3 (Oct 2025)', '1 employee correction, 24 related questions'],
       kind: 'Conflict',
       tone: 'flag',
       title: 'Two different PTO carryover deadlines',
@@ -535,6 +761,9 @@ export const employerDashboard = {
       action: 'Resolve',
     },
     {
+      id: 'd-hsa',
+      resolve: { type: 'amount', prompt: 'Annual HSA employer contribution for 2026 (USD)' },
+      sources: ['Benefits Guide 2026 — not stated', 'Summary of Benefits and Coverage — not stated', '14 employee questions'],
       kind: 'Missing',
       tone: 'muted',
       title: 'No HSA employer contribution on record',
@@ -542,13 +771,16 @@ export const employerDashboard = {
       action: 'Add figure',
     },
     {
+      id: 'd-guide',
+      resolve: { type: 'upload', prompt: 'Upload the 2026 Benefits Guide to replace the 2025 source' },
+      sources: ['Benefits Guide 2025 (superseded)', 'Cited by 14 fields: dental, vision, commuter'],
       kind: 'Outdated',
       tone: 'flag',
       title: '14 fields still cite the 2025 Benefits Guide',
       body: 'Dental, vision and commuter details come from a superseded document. They may still be correct, but they are why your evidence confidence reads Medium to candidates comparing you.',
       action: 'Replace source',
     },
-  ] as { kind: string; tone: ChipToneName; title: string; body: string; action: string }[],
+  ] as EmployerDecision[],
   neverShown: [
     'Who opened what. No employee-level view exists, including for admins.',
     "Anyone's salary, contribution scenario or saved action plan.",
@@ -558,3 +790,11 @@ export const employerDashboard = {
     'Who asked a question. Questions reach you without an identity attached.',
   ],
 }
+
+/* ---------- Response shapes, derived from the mock payloads ---------- */
+
+export type MyBenefits = typeof myBenefits
+export type RetirementExplorer = typeof retirementExplorer
+export type CommunityPageData = typeof communityPage
+export type EmployerDashboard = typeof employerDashboard
+export type CompanyFollowing = { id: string; name: string; count: number }

@@ -3,7 +3,7 @@ import chevronIcon from '../../assets/icons/select-chevron.svg'
 type ScopeSelectProps = {
   label: string
   value: string
-  options: string[]
+  options: { value: string; label: string }[]
   onChange: (value: string) => void
 }
 
@@ -18,7 +18,9 @@ export function ScopeSelect({ label, value, options, onChange }: ScopeSelectProp
           className="w-full cursor-pointer appearance-none rounded-[8px] border border-line-strong bg-surface py-[9px] pr-[30px] pl-[12px] text-body text-ink outline-none"
         >
           {options.map((option) => (
-            <option key={option}>{option}</option>
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
           ))}
         </select>
         <img src={chevronIcon} alt="" width={11} height={11} className="pointer-events-none absolute right-[11px]" />

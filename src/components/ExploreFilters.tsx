@@ -1,28 +1,40 @@
+import { useState } from 'react'
 import { Chip } from './Chip'
 import { Panel } from './Panel'
 
 type ChipRowProps = {
   label: string
   options: string[]
-  selected: string
-  onSelect: (value: string) => void
+  /** Extra options revealed by "More ›". */
+  more: string[]
+  /** null = no filter on this row. */
+  selected: string | null
+  onSelect: (value: string | null) => void
 }
 
-function ChipRow({ label, options, selected, onSelect }: ChipRowProps) {
+function ChipRow({ label, options, more, selected, onSelect }: ChipRowProps) {
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded || (selected && more.includes(selected)) ? [...options, ...more] : options
+
   return (
     <div className="flex w-full items-start gap-[8px]" role="group" aria-label={label}>
       <div className="flex min-w-0 flex-1 flex-wrap gap-[8px]">
-        {options.map((option) => (
+        {visible.map((option) => (
           <Chip
             key={option}
             label={option}
             tone={option === selected ? 'active' : 'default'}
-            onClick={() => onSelect(option)}
+            onClick={() => onSelect(option === selected ? null : option)}
           />
         ))}
       </div>
-      <button type="button" className="shrink-0 cursor-pointer text-small font-medium text-t-link hover:underline">
-        More ›
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((e) => !e)}
+        className="shrink-0 cursor-pointer text-small font-medium text-t-link hover:underline"
+      >
+        {expanded ? '‹ Less' : 'More ›'}
       </button>
     </div>
   )
@@ -30,19 +42,30 @@ function ChipRow({ label, options, selected, onSelect }: ChipRowProps) {
 
 type ExploreFiltersProps = {
   industries: string[]
+  moreIndustries: string[]
   roles: string[]
-  industry: string
-  role: string
-  onIndustryChange: (value: string) => void
-  onRoleChange: (value: string) => void
+  moreRoles: string[]
+  industry: string | null
+  role: string | null
+  onIndustryChange: (value: string | null) => void
+  onRoleChange: (value: string | null) => void
 }
 
-export function ExploreFilters({ industries, roles, industry, role, onIndustryChange, onRoleChange }: ExploreFiltersProps) {
+export function ExploreFilters({
+  industries,
+  moreIndustries,
+  roles,
+  moreRoles,
+  industry,
+  role,
+  onIndustryChange,
+  onRoleChange,
+}: ExploreFiltersProps) {
   return (
     <Panel className="w-full gap-[12px]">
-      <ChipRow label="Industry" options={industries} selected={industry} onSelect={onIndustryChange} />
+      <ChipRow label="Industry" options={industries} more={moreIndustries} selected={industry} onSelect={onIndustryChange} />
       <div className="h-px w-full bg-line" />
-      <ChipRow label="Role" options={roles} selected={role} onSelect={onRoleChange} />
+      <ChipRow label="Role" options={roles} more={moreRoles} selected={role} onSelect={onRoleChange} />
     </Panel>
   )
 }
