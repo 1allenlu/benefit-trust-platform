@@ -9,6 +9,7 @@ import { Panel } from '../components/Panel'
 import { SectionHeader } from '../components/SectionHeader'
 import { useToast } from '../components/Toast'
 import { OfferAssistant } from '../components/offer/OfferAssistant'
+import { OfferMatchCalculator } from '../components/offer/OfferMatchCalculator'
 import { OfferBenefitCards, StartDateForm } from '../components/offer/OfferParts'
 import { packetSections, sampleOffer } from '../data/offer'
 import { useApi } from '../hooks/useApi'
@@ -111,6 +112,8 @@ function OfferContent({ initial }: { initial: OfferState }) {
           <p className="text-small text-light">This is recorded in Vested only. Nothing is sent to {sampleOffer.employer}.</p>
         </Panel>
       </div>
+
+      <OfferMatchCalculator />
 
       <Panel className="w-full gap-[12px]">
         <SectionHeader title={sampleOffer.packetTitle} subtitle={`Version ${sampleOffer.planVersion} · ${sampleOffer.label}`} />

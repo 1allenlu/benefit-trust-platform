@@ -37,7 +37,12 @@ export const sampleOffer = {
   planVersion: '2026.1',
   packetTitle: 'Harbor Systems 2026 New Hire Benefits Packet',
   label: 'Fictional demo data',
+  /** Starting value for the 401(k) calculator; the user edits it. */
+  baseSalary: 85000,
 }
+
+/** §4.2 as data: 100% of contributions up to 3% of eligible pay. Checked against the clause text in offer.check.ts. */
+export const offerMatchTiers = [{ upTo: 3, rate: 1 }]
 
 export const packetSections: PacketSection[] = [
   {

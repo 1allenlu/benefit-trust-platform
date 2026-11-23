@@ -10,8 +10,9 @@ type ContributionSliderProps = {
 export function ContributionSlider({ value, onChange, matchCapPercent, maxPercent }: ContributionSliderProps) {
   const pct = (n: number) => `${(n / maxPercent) * 100}%`
 
+  // Same x-span as MatchCurve (0–10% at 56–846px) so the two line up.
   return (
-    <div className="group relative h-[28px] w-[850px] shrink-0">
+    <div className="group relative ml-[56px] h-[28px] w-[790px] shrink-0">
       <span className="absolute top-[9px] left-0 h-[10px] w-full rounded-full bg-shade" />
       <span className="absolute top-[9px] left-0 h-[10px] rounded-full bg-green-50" style={{ width: pct(matchCapPercent) }} />
       <span className="absolute top-[9px] left-0 h-[10px] rounded-full bg-green" style={{ width: pct(value) }} />

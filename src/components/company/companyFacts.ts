@@ -30,7 +30,7 @@ export function factsFor(record: CompanyRecord, salary: number) {
     timeOff: [
       {
         label: 'Paid time off',
-        value: facts.ptoDays === 'unlimited' ? 'Unlimited' : `${facts.ptoDays} days, accrued monthly`,
+        value: facts.ptoDays === 'unlimited' ? 'Unlimited' : `${facts.ptoDays} days a year`,
         source: facts.ptoDays === 'unlimited' ? 'report' : 'document',
         flag: flags.pto,
       },

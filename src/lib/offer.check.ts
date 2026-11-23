@@ -1,4 +1,5 @@
 // Self-check for the offer task logic. Run: node src/lib/offer.check.ts
+import { offerMatchTiers, sectionById } from '../data/offer.ts'
 import { addCalendarDays, buildTasks, isValidDate, type OfferState } from './offer.ts'
 
 function eq(actual: unknown, expected: unknown, what: string) {
@@ -25,5 +26,11 @@ eq(tasks.map((t) => [t.id, t.due, t.done]), [['elect-health-coverage', '2027-01-
 // Correcting the start date moves the due date but keeps completion.
 eq(buildTasks({ ...state, startDate: '2027-01-04' })[0], { ...tasks[0], due: '2027-02-03' }, 'start date correction')
 eq(buildTasks({ ...state, status: 'prospective' }), [], 'no tasks before acceptance')
+
+// The calculator's rule must say what the packet clause says.
+const clause = sectionById('employer-match').text
+for (const t of offerMatchTiers) {
+  eq(clause.includes(`${t.rate * 100}% of employee contributions up to ${t.upTo}%`), true, 'match rule matches §4.2')
+}
 
 console.log('offer checks passed')

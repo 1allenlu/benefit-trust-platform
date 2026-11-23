@@ -86,7 +86,7 @@ export function buildProfile(record: CompanyRecord): CompanyProfile {
       {
         label: 'Paid time off',
         value: pto === null ? 'Unlimited' : `${pto} days`,
-        sub: pto === null ? 'no documented minimum' : 'accrued monthly',
+        sub: pto === null ? 'no documented minimum' : 'per year',
       },
       { label: 'Parental leave', value: `${facts.parentalWeeks} weeks`, sub: 'fully paid' },
       {

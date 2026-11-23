@@ -167,11 +167,11 @@ export const companyRecords: CompanyRecord[] = [
     employees: '640', verified: false, lastVerified: '19 Dec 2025',
     facts: {
       healthCoveredPct: 70, healthValue: 7200, matchTiers: tiers([3, 1]), vesting: 'Immediate', vestingYears: 0,
-      everydayValue: 1350, hsaSeed: 750, learningBudget: 3200, studentLoan: 'none', ptoDays: 'unlimited', parentalWeeks: 8,
+      everydayValue: 1350, hsaSeed: 750, learningBudget: 3200, studentLoan: 'none', ptoDays: 15, parentalWeeks: 8,
     },
-    flags: { pto: 'No documented minimum' },
+    flags: {},
     sources: { documents: 61, reports: 29, undocumented: 10 },
-    fit: { score: 52, note: 'Unlimited PTO has no documented floor' },
+    fit: { score: 52, note: 'Match stops at 3% of pay' },
   },
   {
     id: 'meridian', name: 'Meridian Health', reportCount: 88, city: 'Boston, MA', industries: ['Tech', 'Healthcare'],
@@ -625,8 +625,8 @@ export const communityPage = {
       kind: 'Correction',
       tone: 'flag',
       meta: '5 hours ago · under review',
-      title: 'PTO is listed as unlimited, but the handbook sets a 10-day minimum',
-      body: 'Attached p.19 of the 2026 handbook. The profile currently shows no documented floor, which makes Harbor look worse than it is.',
+      title: 'Vesting is listed as immediate, but the offer packet does not say',
+      body: 'The 2026 new hire packet covers the match rate but has no vesting section. Can someone attach the plan document before this is shown as fact?',
       helpful: 24,
     },
     {
