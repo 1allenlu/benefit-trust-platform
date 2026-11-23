@@ -8,7 +8,7 @@ import { PageShell } from '../components/PageShell'
 import { Panel } from '../components/Panel'
 import { SectionHeader } from '../components/SectionHeader'
 import { useToast } from '../components/Toast'
-import { OfferAssistant } from '../components/offer/OfferAssistant'
+import { OfferAssistant, type LiveAnswer } from '../components/offer/OfferAssistant'
 import { OfferMatchCalculator } from '../components/offer/OfferMatchCalculator'
 import { CorrectionModal, OfferBenefitCards, StartDateForm } from '../components/offer/OfferParts'
 import type { OfferCorrection } from '../api/mock/db'
@@ -16,6 +16,14 @@ import { packetSections, sampleOffer, type BenefitCard } from '../data/offer'
 import { useApi } from '../hooks/useApi'
 import { formatDate, type OfferState } from '../lib/offer'
 import { track } from '../lib/research'
+
+const LIVE_ASSISTANT = import.meta.env.VITE_LIVE_ASSISTANT === 'true'
+
+/** Server-checked live answer; null (fixed fallback) if the endpoint is off or fails. */
+async function askLive(question: string): Promise<LiveAnswer | null> {
+  const res = await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }) })
+  return res.ok ? res.json() : null
+}
 
 export function OfferPage() {
   const { offerId } = useParams()
@@ -113,6 +121,7 @@ function OfferContent({ initial, initialCorrections }: { initial: OfferState; in
           savedCustomTexts={offer.customQuestions.map((q) => q.text)}
           onSave={saveQuestion}
           onSaveCustom={saveCustom}
+          askLive={LIVE_ASSISTANT ? askLive : undefined}
         />
 
         <Panel className="w-[360px] shrink-0 gap-[14px]">
