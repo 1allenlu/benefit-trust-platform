@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { contentApi } from '../../api'
 import { sampleOffer } from '../../data/offer'
 import { formatDate, type OfferState, type OfferTask } from '../../lib/offer'
+import { track } from '../../lib/research'
 import { Button } from '../Button'
 import { Chip } from '../Chip'
 import { Panel } from '../Panel'
@@ -20,11 +21,14 @@ export function OfferTracker({ initial }: { initial: View }) {
   const next = open.find((t) => t.due) ?? open[0]
   const done = tasks.length - open.length
 
+  useEffect(() => track('dashboard_viewed'), [])
+
   const toggle = async (task: OfferTask) => {
     const before = view
     setView({ ...view, tasks: tasks.map((t) => (t.id === task.id ? { ...t, done: !t.done } : t)) }) // optimistic
     try {
       setView(await contentApi.setOfferTaskDone(task.id, !task.done))
+      track(task.done ? 'task_reopened' : 'task_done', task.id)
       toast(task.done ? `Reopened: ${task.title}` : `Marked done: ${task.title}`)
     } catch {
       setView(before)

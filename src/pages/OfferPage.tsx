@@ -14,6 +14,7 @@ import { OfferBenefitCards, StartDateForm } from '../components/offer/OfferParts
 import { packetSections, sampleOffer } from '../data/offer'
 import { useApi } from '../hooks/useApi'
 import { formatDate, type OfferState } from '../lib/offer'
+import { track } from '../lib/research'
 
 export function OfferPage() {
   const { offerId } = useParams()
@@ -34,6 +35,8 @@ function OfferContent({ initial }: { initial: OfferState }) {
   const highlighted = location.hash.slice(1)
   const accepted = offer.status === 'accepted'
 
+  useEffect(() => track('offer_opened'), [])
+
   // Every source click is a navigation (new key), so re-clicking the same clause scrolls again.
   useEffect(() => {
     if (highlighted) document.getElementById(highlighted)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -41,11 +44,13 @@ function OfferContent({ initial }: { initial: OfferState }) {
 
   const saveQuestion = async (id: string) => {
     setOffer((await contentApi.saveOfferQuestion(id)).state)
+    track('question_saved', id)
     toast('Saved to My benefits')
   }
 
   const accept = async (startDate: string) => {
     await contentApi.acceptOffer(startDate)
+    track(accepted ? 'start_date_corrected' : 'offer_accepted')
     if (accepted) {
       setOffer((o) => ({ ...o, startDate }))
       toast(`Start date updated to ${formatDate(startDate)}`)

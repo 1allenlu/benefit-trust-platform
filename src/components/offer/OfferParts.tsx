@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { ApiError } from '../../api'
 import { benefitCards, sampleOffer, sectionById, type PacketSectionId } from '../../data/offer'
 import { isValidDate } from '../../lib/offer'
+import { track } from '../../lib/research'
 import { Button } from '../Button'
 import { Chip } from '../Chip'
 import { TextField } from '../auth/TextField'
@@ -13,7 +14,7 @@ export const offerPath = `/offers/${sampleOffer.id}`
 export function SourceLink({ sectionId, label }: { sectionId: PacketSectionId; label?: string }) {
   const section = sectionById(sectionId)
   return (
-    <Link to={`${offerPath}#${sectionId}`} className="text-small font-medium text-t-link hover:underline">
+    <Link to={`${offerPath}#${sectionId}`} onClick={() => track('source_opened', sectionId)} className="text-small font-medium text-t-link hover:underline">
       {label ?? `Source: §${section.number} ${section.title}`}
     </Link>
   )

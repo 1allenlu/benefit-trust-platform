@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { offerQuestions, type OfferQuestion } from '../../data/offer'
+import { track } from '../../lib/research'
 import { Button } from '../Button'
 import { Panel } from '../Panel'
 import { SectionHeader } from '../SectionHeader'
@@ -32,7 +33,10 @@ export function OfferAssistant({ savedQuestionIds, onSave }: Props) {
           <button
             key={q.id}
             type="button"
-            onClick={() => setAsked((list) => [...list, q])}
+            onClick={() => {
+              track('question_asked', q.id)
+              setAsked((list) => [...list, q])
+            }}
             className="cursor-pointer rounded-full border border-line-strong bg-surface px-[12px] py-[6px] text-small font-medium text-ink hover:bg-soft"
           >
             {q.label}
