@@ -22,6 +22,8 @@ import { FactList } from '../components/company/FactList'
 import { factsCsv, factsFor } from '../components/company/companyFacts'
 import { defaultBaseSalary, yourCompanyId, type CommunityPost, type CompanyProfile, type CompanyRecord, type CoverageLevel } from '../data/mock'
 import { useApi } from '../hooks/useApi'
+import { sampleOffer } from '../data/offer'
+import { offerPath } from '../components/offer/OfferParts'
 
 // Full class names so Tailwind can see them.
 const breakdownColors = [
@@ -118,6 +120,20 @@ function CompanyProfileContent({ profile, record, isYourEmployer, following, pos
         initiallyFollowing={following}
         compareTo={compareTo}
       />
+
+      {record.id === sampleOffer.companyId && (
+        <div className="flex w-full items-center gap-[12px] rounded-[12px] border border-green bg-green-50 px-[18px] py-[14px]">
+          <div className="flex min-w-0 flex-1 flex-col gap-[2px]">
+            <span className="text-body font-semibold text-ink">You have an offer from {sampleOffer.employer}</span>
+            <span className="text-small text-mid">
+              Check health, time off and 401(k) terms against the offer packet before you sign. {sampleOffer.label}.
+            </span>
+          </div>
+          <Button kind="primary" to={offerPath}>
+            Review this offer
+          </Button>
+        </div>
+      )}
 
       <div className="flex w-full items-start gap-[4px] border-b border-line" role="tablist">
         {profile.subTabs.map((tab, i) => (

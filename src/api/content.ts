@@ -32,9 +32,16 @@ import {
   usd,
   valueParts,
 } from '../lib/benefits'
+import { buildTasks, isValidDate, type OfferState } from '../lib/offer'
+import { offerQuestions, sampleOffer } from '../data/offer'
 import { ApiError, request } from './client'
 import { getDb, newId, resetMockDb, updateDb } from './mock/db'
 import { buildProfile } from './mock/profiles'
+
+function offerView(): { state: OfferState; tasks: ReturnType<typeof buildTasks> } {
+  const state = getDb().offer
+  return { state, tasks: buildTasks(state) }
+}
 
 /* ---------- Search ---------- */
 
@@ -439,6 +446,52 @@ export const contentApi = {
           db.posts = db.posts.map((p) => (p.id === postId ? { ...p, employerAnswer } : p))
           return employerAnswer
         }),
+    }),
+
+  /* ---------- Sample offer (P0: one bundled offer, browser-local state) ---------- */
+
+  getOffer: () => request(`/offers/${sampleOffer.id}`, { mock: offerView }),
+
+  /** Saving twice keeps one copy. Nothing is sent to the employer. */
+  saveOfferQuestion: (questionId: string) =>
+    request(`/offers/${sampleOffer.id}/questions`, {
+      method: 'POST',
+      body: { questionId },
+      mock: () => {
+        if (!offerQuestions.some((q) => q.id === questionId)) throw new ApiError(400, 'Unknown question')
+        updateDb((db) => {
+          db.offer.savedQuestionIds = [...new Set([...db.offer.savedQuestionIds, questionId])]
+        })
+        return offerView()
+      },
+    }),
+
+  /** Records acceptance in Vested only; also used to correct the start date. */
+  acceptOffer: (startDate: string) =>
+    request(`/offers/${sampleOffer.id}/acceptance`, {
+      method: 'PUT',
+      body: { startDate },
+      mock: () => {
+        if (!isValidDate(startDate)) throw new ApiError(400, 'Enter a valid start date')
+        updateDb((db) => {
+          db.offer.status = 'accepted'
+          db.offer.startDate = startDate
+        })
+        return offerView()
+      },
+    }),
+
+  setOfferTaskDone: (taskId: string, done: boolean) =>
+    request(`/offers/${sampleOffer.id}/tasks/${encodeURIComponent(taskId)}`, {
+      method: 'PUT',
+      body: { done },
+      mock: () => {
+        updateDb((db) => {
+          const rest = db.offer.doneTaskIds.filter((id) => id !== taskId)
+          db.offer.doneTaskIds = done ? [...rest, taskId] : rest
+        })
+        return offerView()
+      },
     }),
 
   /** Mock only: restores the seed data so a demo can be run again from the top. */

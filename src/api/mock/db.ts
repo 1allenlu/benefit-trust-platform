@@ -5,6 +5,8 @@ import {
   type CommunityPost,
   type CompareScope,
 } from '../../data/mock'
+import { sampleOffer } from '../../data/offer'
+import type { OfferState } from '../../lib/offer'
 
 /**
  * Mutable state behind the mock API: what a backend database would hold.
@@ -20,6 +22,8 @@ export type MockDb = {
   contributedFields: number
   /** Employer decisions resolved, with what was chosen. */
   resolvedDecisions: Record<string, string>
+  /** The single sample offer's progress from review to onboarding. */
+  offer: OfferState
 }
 
 const KEY = 'vested.mock.db.v1'
@@ -33,6 +37,14 @@ function seed(): MockDb {
     savedComparison: null,
     contributedFields: 12,
     resolvedDecisions: {},
+    offer: {
+      offerId: sampleOffer.id,
+      planVersion: sampleOffer.planVersion,
+      status: 'prospective',
+      startDate: null,
+      savedQuestionIds: [],
+      doneTaskIds: [],
+    },
   })
 }
 

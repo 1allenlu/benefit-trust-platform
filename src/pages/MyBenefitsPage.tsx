@@ -15,16 +15,41 @@ import { useAuth } from '../auth/AuthContext'
 import { Loaded } from '../components/Loaded'
 import type { MyBenefits } from '../data/mock'
 import { useApi } from '../hooks/useApi'
+import { OfferTracker } from '../components/offer/OfferTracker'
+import { offerPath } from '../components/offer/OfferParts'
+import { sampleOffer } from '../data/offer'
 
 const quarterColors = ['bg-teal-900', 'bg-teal-500', 'bg-teal-300']
 const breakdownColors = ['bg-teal-900', 'bg-teal-700', 'bg-teal-500', 'bg-teal-300', 'bg-teal-100']
 const vestingBarColors = ['bg-shade', 'bg-teal-300', 'bg-teal-500', 'bg-teal-900']
 
 export function MyBenefitsPage() {
+  const { user, ready } = useAuth()
+  const offer = useApi(() => contentApi.getOffer(), [])
   const state = useApi(() => contentApi.getMyBenefits(), [])
   return (
     <PageShell activeTab="my-benefits">
-      <Loaded state={state}>{(data) => <MyBenefitsContent myBenefits={data} />}</Loaded>
+      <Loaded state={offer}>
+        {(data) =>
+          data.state.status === 'accepted' ? (
+            <OfferTracker initial={data} />
+          ) : (
+            ready &&
+            !user && (
+              <Panel className="items-start gap-[12px]">
+                <SectionHeader
+                  title="Nothing to track yet"
+                  subtitle={`Review the ${sampleOffer.employer} sample offer and mark it accepted to get your onboarding tasks here.`}
+                />
+                <Button kind="primary" to={offerPath}>
+                  Review the sample offer
+                </Button>
+              </Panel>
+            )
+          )
+        }
+      </Loaded>
+      {user && <Loaded state={state}>{(data) => <MyBenefitsContent myBenefits={data} />}</Loaded>}
     </PageShell>
   )
 }
