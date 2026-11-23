@@ -32,15 +32,29 @@ import {
   usd,
   valueParts,
 } from '../lib/benefits'
-import { buildTasks, isValidDate, type OfferState } from '../lib/offer'
-import { offerQuestions, sampleOffer } from '../data/offer'
+import { buildMilestones, buildTasks, isValidDate, type OfferState } from '../lib/offer'
+import { offerQuestions, packetSections, sampleOffer, type PacketSectionId } from '../data/offer'
 import { ApiError, request } from './client'
-import { getDb, newId, resetMockDb, updateDb } from './mock/db'
+import { getDb, newId, resetMockDb, updateDb, type OfferCorrection } from './mock/db'
 import { buildProfile } from './mock/profiles'
 
-function offerView(): { state: OfferState; tasks: ReturnType<typeof buildTasks> } {
-  const state = getDb().offer
-  return { state, tasks: buildTasks(state) }
+function offerView(): {
+  state: OfferState
+  tasks: ReturnType<typeof buildTasks>
+  milestones: ReturnType<typeof buildMilestones>
+  corrections: OfferCorrection[]
+} {
+  const { offer: state, offerCorrections } = getDb()
+  return { state, tasks: buildTasks(state), milestones: buildMilestones(state), corrections: offerCorrections }
+}
+
+const MAX_TEXT = 500
+/** Trims and bounds user text at the API boundary. */
+function cleanText(value: string, field: string) {
+  const text = value.trim()
+  if (!text) throw new ApiError(400, `${field} is required`)
+  if (text.length > MAX_TEXT) throw new ApiError(400, `${field} must be ${MAX_TEXT} characters or fewer`)
+  return text
 }
 
 /* ---------- Search ---------- */
@@ -461,6 +475,69 @@ export const contentApi = {
         if (!offerQuestions.some((q) => q.id === questionId)) throw new ApiError(400, 'Unknown question')
         updateDb((db) => {
           db.offer.savedQuestionIds = [...new Set([...db.offer.savedQuestionIds, questionId])]
+        })
+        return offerView()
+      },
+    }),
+
+  /** A typed question the packet couldn't answer. Saving the same text twice keeps one copy. */
+  saveCustomQuestion: (text: string) =>
+    request(`/offers/${sampleOffer.id}/questions`, {
+      method: 'POST',
+      body: { text },
+      mock: () => {
+        const clean = cleanText(text, 'Question')
+        updateDb((db) => {
+          if (!db.offer.customQuestions.some((q) => q.text.toLowerCase() === clean.toLowerCase()))
+            db.offer.customQuestions = [...db.offer.customQuestions, { id: newId('q'), text: clean }]
+        })
+        return offerView()
+      },
+    }),
+
+  setContribution: (percent: number) =>
+    request(`/offers/${sampleOffer.id}/contribution`, {
+      method: 'PUT',
+      body: { percent },
+      mock: () => {
+        if (!Number.isFinite(percent) || percent < 0 || percent > 100) throw new ApiError(400, 'Enter a percent between 0 and 100')
+        updateDb((db) => {
+          db.offer.contributionPercent = percent
+        })
+        return offerView()
+      },
+    }),
+
+  submitCorrection: (input: { sectionId: PacketSectionId; proposed: string; source: string }) =>
+    request(`/offers/${sampleOffer.id}/corrections`, {
+      method: 'POST',
+      body: input,
+      mock: () => {
+        if (!packetSections.some((s) => s.id === input.sectionId)) throw new ApiError(400, 'Unknown packet section')
+        const correction: OfferCorrection = {
+          id: newId('c'),
+          sectionId: input.sectionId,
+          proposed: cleanText(input.proposed, 'Correction'),
+          source: input.source.trim().slice(0, MAX_TEXT),
+          status: 'pending',
+          submittedAt: new Date().toISOString(),
+        }
+        updateDb((db) => {
+          db.offerCorrections = [...db.offerCorrections, correction]
+        })
+        return offerView()
+      },
+    }),
+
+  /** Reviewer decision. Accepting doesn't edit the versioned packet; it queues the change for the next version. */
+  reviewCorrection: (id: string, status: 'accepted' | 'rejected') =>
+    request(`/offers/${sampleOffer.id}/corrections/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: { status },
+      mock: () => {
+        if (!getDb().offerCorrections.some((c) => c.id === id)) throw new ApiError(404, 'Correction not found')
+        updateDb((db) => {
+          db.offerCorrections = db.offerCorrections.map((c) => (c.id === id ? { ...c, status } : c))
         })
         return offerView()
       },

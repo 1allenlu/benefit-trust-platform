@@ -13,6 +13,11 @@ export type ResearchEventName =
   | 'dashboard_viewed'
   | 'task_done'
   | 'task_reopened'
+  | 'question_typed'
+  | 'correction_submitted'
+  | 'calendar_added'
+  | 'reminders_opened'
+  | 'contribution_set'
 
 export type ResearchEvent = { at: string; name: ResearchEventName; detail?: string }
 

@@ -10,8 +10,9 @@ import { SectionHeader } from '../components/SectionHeader'
 import { useToast } from '../components/Toast'
 import { OfferAssistant } from '../components/offer/OfferAssistant'
 import { OfferMatchCalculator } from '../components/offer/OfferMatchCalculator'
-import { OfferBenefitCards, StartDateForm } from '../components/offer/OfferParts'
-import { packetSections, sampleOffer } from '../data/offer'
+import { CorrectionModal, OfferBenefitCards, StartDateForm } from '../components/offer/OfferParts'
+import type { OfferCorrection } from '../api/mock/db'
+import { packetSections, sampleOffer, type BenefitCard } from '../data/offer'
 import { useApi } from '../hooks/useApi'
 import { formatDate, type OfferState } from '../lib/offer'
 import { track } from '../lib/research'
@@ -22,16 +23,18 @@ export function OfferPage() {
   if (offerId !== sampleOffer.id) return <Navigate to="/" replace />
   return (
     <PageShell activeTab="companies">
-      <Loaded state={state}>{(data) => <OfferContent initial={data.state} />}</Loaded>
+      <Loaded state={state}>{(data) => <OfferContent initial={data.state} initialCorrections={data.corrections} />}</Loaded>
     </PageShell>
   )
 }
 
-function OfferContent({ initial }: { initial: OfferState }) {
+function OfferContent({ initial, initialCorrections }: { initial: OfferState; initialCorrections: OfferCorrection[] }) {
   const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
   const [offer, setOffer] = useState(initial)
+  const [corrections, setCorrections] = useState(initialCorrections)
+  const [correcting, setCorrecting] = useState<BenefitCard>()
   const highlighted = location.hash.slice(1)
   const accepted = offer.status === 'accepted'
 
@@ -46,6 +49,19 @@ function OfferContent({ initial }: { initial: OfferState }) {
     setOffer((await contentApi.saveOfferQuestion(id)).state)
     track('question_saved', id)
     toast('Saved to My benefits')
+  }
+
+  const saveCustom = async (text: string) => {
+    setOffer((await contentApi.saveCustomQuestion(text)).state)
+    track('question_saved', 'custom')
+    toast('Saved to My benefits')
+  }
+
+  const submitCorrection = async (input: Parameters<typeof contentApi.submitCorrection>[0]) => {
+    setCorrections((await contentApi.submitCorrection(input)).corrections)
+    track('correction_submitted', input.sectionId)
+    setCorrecting(undefined)
+    toast('Sent for review. The packet stays as is until a reviewer checks it.')
   }
 
   const accept = async (startDate: string) => {
@@ -88,10 +104,16 @@ function OfferContent({ initial }: { initial: OfferState }) {
         {isMockApi && <Button onClick={reset}>Reset demo</Button>}
       </div>
 
-      <OfferBenefitCards />
+      <OfferBenefitCards corrections={corrections} onCorrect={setCorrecting} />
+      {correcting && <CorrectionModal card={correcting} onClose={() => setCorrecting(undefined)} onSubmit={submitCorrection} />}
 
       <div className="flex w-full items-start gap-[18px]">
-        <OfferAssistant savedQuestionIds={offer.savedQuestionIds} onSave={saveQuestion} />
+        <OfferAssistant
+          savedQuestionIds={offer.savedQuestionIds}
+          savedCustomTexts={offer.customQuestions.map((q) => q.text)}
+          onSave={saveQuestion}
+          onSaveCustom={saveCustom}
+        />
 
         <Panel className="w-[360px] shrink-0 gap-[14px]">
           <div id="accept" className="scroll-mt-[96px]">

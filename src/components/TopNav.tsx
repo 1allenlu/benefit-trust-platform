@@ -48,11 +48,9 @@ export function TopNav({ tabs, activeTab }: TopNavProps) {
           <img src={arrowRightIcon} alt="" width={12} height={12} />
         </Link>
 
+        {ready && <Notifications signedIn={Boolean(user)} />}
         {user ? (
-          <>
-            <Notifications />
-            <AccountMenu user={user} />
-          </>
+          <AccountMenu user={user} />
         ) : (
           // Hidden until the session check finishes, so signed-in users don't see a flash of "Log in".
           <div className={`flex shrink-0 items-center gap-[20px] ${ready ? '' : 'invisible'}`}>

@@ -13,6 +13,7 @@ import { LoginPage } from './pages/LoginPage'
 import { MyBenefitsPage } from './pages/MyBenefitsPage'
 import { OfferPage } from './pages/OfferPage'
 import { ResearchPage } from './pages/ResearchPage'
+import { ReviewPage } from './pages/ReviewPage'
 import { RetirementExplorerPage } from './pages/RetirementExplorerPage'
 import { SignupPage } from './pages/SignupPage'
 
@@ -37,6 +38,7 @@ function App() {
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/offers/:offerId" element={<OfferPage />} />
             <Route path="/research" element={<ResearchPage />} />
+            <Route path="/review" element={<ReviewPage />} />
             {/* Login-free so the sample offer flow works without an account. */}
             <Route path="/my-benefits" element={<MyBenefitsPage />} />
             <Route

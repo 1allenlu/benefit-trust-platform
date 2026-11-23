@@ -7,6 +7,16 @@ import {
 } from '../../data/mock'
 import { sampleOffer } from '../../data/offer'
 import type { OfferState } from '../../lib/offer'
+import type { PacketSectionId } from '../../data/offer'
+
+export type OfferCorrection = {
+  id: string
+  sectionId: PacketSectionId
+  proposed: string
+  source: string
+  status: 'pending' | 'accepted' | 'rejected'
+  submittedAt: string
+}
 
 /**
  * Mutable state behind the mock API: what a backend database would hold.
@@ -24,6 +34,8 @@ export type MockDb = {
   resolvedDecisions: Record<string, string>
   /** The single sample offer's progress from review to onboarding. */
   offer: OfferState
+  /** Field-level corrections to the offer packet, waiting for review. */
+  offerCorrections: OfferCorrection[]
 }
 
 const KEY = 'vested.mock.db.v1'
@@ -43,8 +55,11 @@ function seed(): MockDb {
       status: 'prospective',
       startDate: null,
       savedQuestionIds: [],
+      customQuestions: [],
       doneTaskIds: [],
+      contributionPercent: null,
     },
+    offerCorrections: [],
   })
 }
 
@@ -54,7 +69,10 @@ export function getDb(): MockDb {
   if (db) return db
   try {
     const stored = localStorage.getItem(KEY)
-    db = stored ? { ...seed(), ...JSON.parse(stored) } : seed()
+    const base = seed()
+    const saved = stored ? JSON.parse(stored) : {}
+    // Nested merge so state saved by an older build picks up new offer fields.
+    db = { ...base, ...saved, offer: { ...base.offer, ...saved.offer } }
   } catch {
     db = seed()
   }
